@@ -3,13 +3,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.cw1_trafficapplication"
+    namespace = "com.example.cw1_trafficapplication_s2534002"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.cw1_trafficapplication"
+        applicationId = "com.example.cw1_trafficapplication_s2534002"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

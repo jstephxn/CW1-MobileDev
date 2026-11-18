@@ -1,4 +1,4 @@
-package com.example.cw1_trafficapplication;
+package com.example.cw1_trafficapplication_s2534002;
 
 import org.junit.Test;
 
