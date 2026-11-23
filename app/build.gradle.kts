@@ -68,8 +68,10 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.material)
     implementation("androidx.recyclerview:recyclerview:1.4.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.android.gms:play-services-maps:19.2.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
-    implementation("com.google.android.gms:play-services-maps:19.2.0")
+
 }

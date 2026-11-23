@@ -17,6 +17,9 @@ import com.example.cw1_trafficapplication_s2534002.model.Situation;
 import com.example.cw1_trafficapplication_s2534002.parser.TrafficXmlParser;
 import com.example.cw1_trafficapplication_s2534002.adapter.TrafficSituationAdapter;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -27,6 +30,9 @@ import android.widget.TextView;
 import android.view.View.OnClickListener;
 import android.graphics.Color;
 import android.content.res.ColorStateList;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,12 +42,15 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.net.URL;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
+import java.util.Locale;
 
 import android.util.Base64;
 import android.widget.EditText;
@@ -77,6 +86,10 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
     private boolean showingRoadworks = false;
 
     final String unplannedEventsURL = "https://datex2.trafficscotland.org/rest/2.3/publications/UnplannedEvents/Content.xml";
+
+    private FusedLocationProviderClient fusedLocationClient;
+    private Location userLocation;
+    private static final int LOCATION_PERMISSION_REQUEST = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,11 +141,67 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             }
         });
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        requestLocationPermission();
+
         Button incidentsButton = findViewById(R.id.incidentsButton);
         Button roadworksButton = findViewById(R.id.roadworksButton);
         incidentsButton.setOnClickListener(v -> filterSituations(false));
         roadworksButton.setOnClickListener(v -> filterSituations(true));
 
+    }
+
+    private float calculateDistance(Situation situation) {
+
+        if (userLocation == null ||
+                situation.getLatitude() == null ||
+                situation.getLongitude() == null) {
+            return -1;
+        }
+
+        Log.d("DISTANCE_DEBUG", "User: "
+                + userLocation.getLatitude() + ", "
+                + userLocation.getLongitude());
+
+        Log.d("DISTANCE_DEBUG", "Incident: "
+                + situation.getLatitude() + ", "
+                + situation.getLongitude());
+
+        Location situationLocation = new Location("situation");
+
+        situationLocation.setLatitude(situation.getLatitude());
+        situationLocation.setLongitude(situation.getLongitude());
+
+        float distance = userLocation.distanceTo(situationLocation);
+
+        Log.d("DISTANCE_DEBUG", "Calculated distance: " + distance + " metres");
+
+        return distance;
+    }
+
+    private String formatDistance(float distance) {
+
+        if (distance < 0) {
+            return "Distance unavailable";
+        }
+
+        if (distance < 1000) {
+            return Math.round(distance) + " m away";
+        }
+
+        return String.format(Locale.UK, "%.1f km away", distance / 1000);
+    }
+
+    private void updateSituationDistances() {
+
+        if (userLocation == null || allSituations == null) {
+            return;
+        }
+
+        for (Situation situation : allSituations) {
+            float distance = calculateDistance(situation);
+            situation.setDistanceFromUser(distance);
+        }
     }
 
     public void onClick(View aview)
@@ -156,6 +225,40 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         super.onPause();
 
         refreshHandler.removeCallbacks(refreshRunnable);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults) {
+
+        super.onRequestPermissionsResult(
+                requestCode,
+                permissions,
+                grantResults
+        );
+
+        if (requestCode == LOCATION_PERMISSION_REQUEST) {
+
+            if (grantResults.length > 0) {
+
+                boolean permissionGranted = false;
+
+                for (int result : grantResults) {
+                    if (result == PackageManager.PERMISSION_GRANTED) {
+                        permissionGranted = true;
+                        break;
+                    }
+                }
+
+                if (permissionGranted) {
+                    getUserLocation();
+                } else {
+                    Log.d("USER_LOCATION", "Location permission denied.");
+                }
+            }
+        }
     }
 
     public void startProgress()
@@ -282,8 +385,66 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                 .show();
     }
 
-    // Need separate thread to access the internet resource over network
-    // Other neater solutions should be adopted in later iterations.
+    private void getUserLocation() {
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        fusedLocationClient.getCurrentLocation(
+                        Priority.PRIORITY_HIGH_ACCURACY,
+                        null
+                )
+                .addOnSuccessListener(location -> {
+
+                    if (location != null) {
+                        userLocation = location;
+
+                        Log.d("USER_LOCATION",
+                                "Latitude: " + location.getLatitude()
+                                        + ", Longitude: " + location.getLongitude());
+
+                        updateSituationDistances();
+
+                        filterSituations(showingRoadworks);
+
+                    } else {
+                        Log.d("USER_LOCATION",
+                                "Location unavailable.");
+                    }
+
+                });
+    }
+
+    private void requestLocationPermission() {
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                ||
+                ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED) {
+
+            getUserLocation();
+
+        } else {
+
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    },
+                    LOCATION_PERMISSION_REQUEST
+            );
+        }
+    }
+
+
     private class Task implements Runnable
     {
         public Task() { }
@@ -347,7 +508,10 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                     inputStream.close();
 
                     // Update the RecyclerView on the UI thread
+                    // Update the RecyclerView on the UI thread
                     MainActivity.this.runOnUiThread(() -> {
+
+                        updateSituationDistances();
 
                         filterSituations(showingRoadworks);
 

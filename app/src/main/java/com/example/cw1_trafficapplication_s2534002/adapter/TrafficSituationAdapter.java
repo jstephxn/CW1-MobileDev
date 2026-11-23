@@ -166,6 +166,16 @@ public class TrafficSituationAdapter
                 listener.onSituationClick(situation);
             }
         });
+
+        // Calculate distance
+        float distance = situation.getDistanceFromUser();
+
+        if (distance >= 0) {
+            holder.incidentDistance.setText(formatDistance(distance));
+            holder.incidentDistance.setVisibility(View.VISIBLE);
+        } else {
+            holder.incidentDistance.setVisibility(View.GONE);
+        }
     }
 
     // Return the number of cards required
@@ -188,6 +198,14 @@ public class TrafficSituationAdapter
                 return Color.parseColor("#9E9E9E"); // Grey
         }
     }
+
+    private String formatDistance(float distance) {
+        if (distance < 1000) {
+            return Math.round(distance) + " m away";
+        }
+
+        return String.format(Locale.UK, "%.1f km away", distance / 1000);
+    }
     // Holds references to the card's views
     public static class ViewHolder extends RecyclerView.ViewHolder {
 
@@ -197,6 +215,7 @@ public class TrafficSituationAdapter
         TextView incidentStartTime;
         View incidentIndicator;
         ImageView incidentIcon;
+        TextView incidentDistance;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -207,6 +226,7 @@ public class TrafficSituationAdapter
             incidentStartTime = itemView.findViewById(R.id.incidentStartTime);
             incidentIndicator = itemView.findViewById(R.id.incidentIndicator);
             incidentIcon = itemView.findViewById(R.id.incidentIcon);
+            incidentDistance = itemView.findViewById(R.id.incidentDistance);
         }
     }
 }

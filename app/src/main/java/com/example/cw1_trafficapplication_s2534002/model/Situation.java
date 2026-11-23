@@ -29,6 +29,17 @@ public class Situation implements Serializable {
     private String abnormalTrafficType;
     private String delaysType;
 
+    // Calculate distance from user.
+    private float distanceFromUser = -1;
+
+    public float getDistanceFromUser() {
+        return distanceFromUser;
+    }
+
+    public void setDistanceFromUser(float distanceFromUser) {
+        this.distanceFromUser = distanceFromUser;
+    }
+
     // Getters and Setters
 
     public String getId() {
