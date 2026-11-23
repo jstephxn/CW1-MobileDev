@@ -14,43 +14,67 @@
 package com.example.cw1_trafficapplication_s2534002;
 
 import com.example.cw1_trafficapplication_s2534002.model.Situation;
+import com.example.cw1_trafficapplication_s2534002.parser.TrafficXmlParser;
+import com.example.cw1_trafficapplication_s2534002.adapter.TrafficSituationAdapter;
+
 
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.view.View.OnClickListener;
+import android.graphics.Color;
+import android.content.res.ColorStateList;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlPullParserFactory;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.appcompat.app.AlertDialog;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.URL;
 import java.net.HttpURLConnection;
-import java.util.Base64;
 import java.util.ArrayList;
+
+import android.util.Base64;
+import android.widget.EditText;
+import android.text.TextWatcher;
+import android.text.Editable;
+import android.os.Handler;
+import android.os.Looper;
 
 
 public class MainActivity extends AppCompatActivity implements OnClickListener {
-    private TextView rawDataDisplay;
-    private Button startButton;
 
-    //DOWNLOADING FROM TRAFFIC SCOTLAND
-    final String clientId = "YOUR_ID_HERE";
-    final String clientKey = "YOUR_KEY_HERE";
+    private static final long REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+    private Handler refreshHandler = new Handler(Looper.getMainLooper());
+
+    private Runnable refreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            startProgress();
+
+            refreshHandler.postDelayed(this, REFRESH_INTERVAL);
+        }
+    };
+
+    private RecyclerView trafficRecyclerView;
+    private Button startButton;
+    private TrafficSituationAdapter trafficSituationAdapter;
+    private ProgressBar loadingProgress;
+    private TextView errorMessage;
+    private ArrayList<Situation> allSituations = new ArrayList<>();
+    private EditText roadSearch;
+    private boolean showingRoadworks = false;
+
     final String unplannedEventsURL = "https://datex2.trafficscotland.org/rest/2.3/publications/UnplannedEvents/Content.xml";
 
     @Override
@@ -64,11 +88,39 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             return insets;
         });
         // Set up the raw links to the graphical components
-        rawDataDisplay = (TextView)findViewById(R.id.rawDataDisplay);
+        trafficRecyclerView = findViewById(R.id.trafficRecyclerView);
+        trafficRecyclerView.setLayoutManager(
+                new LinearLayoutManager(this)
+        );
+
+        loadingProgress = findViewById(R.id.loadingProgress);
+        errorMessage = findViewById(R.id.errorMessage);
+
         startButton = (Button)findViewById(R.id.startButton);
         startButton.setOnClickListener(this);
 
-        // More Code goes here
+        roadSearch = findViewById(R.id.roadSearch);
+
+        roadSearch.addTextChangedListener(new TextWatcher() {
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterSituations(showingRoadworks);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
+        Button incidentsButton = findViewById(R.id.incidentsButton);
+        Button roadworksButton = findViewById(R.id.roadworksButton);
+        incidentsButton.setOnClickListener(v -> filterSituations(false));
+        roadworksButton.setOnClickListener(v -> filterSituations(true));
 
     }
 
@@ -77,225 +129,275 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         startProgress();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        refreshHandler.removeCallbacks(refreshRunnable);
+
+        startProgress();
+
+        refreshHandler.postDelayed(refreshRunnable, REFRESH_INTERVAL);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        refreshHandler.removeCallbacks(refreshRunnable);
+    }
+
     public void startProgress()
     {
-        new Thread(new Task()).start();
+        errorMessage.setVisibility(View.GONE);
 
-        // Run network access on a separate thread; **Updated when I have the API key!**
-        // new Thread(new Task(unplannedEventsURL)).start();
+        loadingProgress.setVisibility(View.VISIBLE);
+
+        startButton.setEnabled(false);
+
+        new Thread(new Task()).start();
+    }
+
+    private void filterSituations(boolean showRoadworks) {
+
+        showingRoadworks = showRoadworks;
+
+        ArrayList<Situation> filteredSituations = new ArrayList<>();
+
+        String searchTerm = roadSearch.getText().toString().trim().toLowerCase();
+
+        for (Situation situation : allSituations) {
+
+            boolean isRoadwork = situation.getRoadManagementType() != null;
+
+            boolean matchesCategory =
+                    showRoadworks == isRoadwork;
+
+            String description = situation.getDescription() != null
+                    ? situation.getDescription().toLowerCase()
+                    : "";
+
+            boolean matchesSearch = description.contains(searchTerm);
+
+            if (matchesCategory && matchesSearch) {
+                filteredSituations.add(situation);
+            }
+        }
+
+        trafficRecyclerView.setAdapter(
+                new TrafficSituationAdapter(
+                        filteredSituations,
+                        situation -> showSituationDetails(situation)
+                )
+        );
+
+        updateCategoryButtons(showRoadworks);
+
+        trafficRecyclerView.setAdapter(new TrafficSituationAdapter(
+                        filteredSituations,
+                        situation -> showSituationDetails(situation)
+                )
+        );
+    }
+
+    private void updateCategoryButtons(boolean showRoadworks) {
+
+        Button incidentsButton = findViewById(R.id.incidentsButton);
+        Button roadworksButton = findViewById(R.id.roadworksButton);
+
+        int selectedColour = Color.parseColor("#1976D2");
+        int unselectedColour = Color.parseColor("#BDBDBD");
+
+        incidentsButton.setBackgroundTintList(
+                ColorStateList.valueOf(
+                        showRoadworks ? unselectedColour : selectedColour
+                )
+        );
+
+        roadworksButton.setBackgroundTintList(
+                ColorStateList.valueOf(
+                        showRoadworks ? selectedColour : unselectedColour
+                )
+        );
+    }
+
+    private void showSituationDetails(Situation situation) {
+
+        StringBuilder details = new StringBuilder();
+
+        details.append("Type: ")
+                .append(situation.getType() != null ?
+                        situation.getType() : "Unknown")
+                .append("\n\n");
+
+        details.append("Description: ")
+                .append(situation.getDescription() != null ?
+                        situation.getDescription() : "No description available")
+                .append("\n\n");
+
+        details.append("Direction: ")
+                .append(situation.getDirection() != null ?
+                        situation.getDirection() : "Unknown")
+                .append("\n\n");
+
+        details.append("Start time: ")
+                .append(situation.getStartTime() != null ?
+                        situation.getStartTime() : "Unknown")
+                .append("\n\n");
+
+        details.append("End time: ")
+                .append(situation.getEndTime() != null ?
+                        situation.getEndTime() : "Unknown")
+                .append("\n\n");
+
+        details.append("Road management: ")
+                .append(situation.getRoadManagementType() != null ?
+                        situation.getRoadManagementType() : "N/A")
+                .append("\n\n");
+
+        details.append("Abnormal traffic: ")
+                .append(situation.getAbnormalTrafficType() != null ?
+                        situation.getAbnormalTrafficType() : "N/A")
+                .append("\n\n");
+
+        details.append("Delays: ")
+                .append(situation.getDelaysType() != null ?
+                        situation.getDelaysType() : "N/A");
+
+        new AlertDialog.Builder(this)
+                .setTitle("Traffic Situation Details")
+                .setMessage(details.toString())
+                .setPositiveButton("Close", null)
+                .show();
     }
 
     // Need separate thread to access the internet resource over network
     // Other neater solutions should be adopted in later iterations.
     private class Task implements Runnable
     {
-        private String result="";
-
-        //private String myurl;
-        //BufferedReader in = null;
-        //String inputLine = "";
-
         public Task() { }
 
-        //public Task(String aurl){
-        //  myurl = aurl;
-        //}
         @Override
-        public void run(){
-            Log.d("MyTask","in run");
+        public void run() {
+
+            Log.d("MyTask", "Starting live traffic request");
+
+            HttpURLConnection urlConnection = null;
 
             try {
-                InputStream inputStream =
-                        MainActivity.this.getAssets().open("unplannedContentExample.xml");
 
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(inputStream, StandardCharsets.UTF_8)
+                // Connect to the Traffic Scotland API
+                URL url = new URL(unplannedEventsURL);
+
+                urlConnection = (HttpURLConnection) url.openConnection();
+
+                urlConnection.setRequestMethod("GET");
+                urlConnection.setConnectTimeout(10000);
+                urlConnection.setReadTimeout(10000);
+
+                urlConnection.setRequestProperty("Accept", "application/xml");
+
+                // Prepare API authentication
+                String credentials =
+                        BuildConfig.TRAFFIC_CLIENT_ID + ":" +
+                                BuildConfig.TRAFFIC_CLIENT_KEY;
+
+                String encodedCredentials = Base64.encodeToString(
+                        credentials.getBytes(StandardCharsets.UTF_8),
+                        Base64.NO_WRAP
                 );
 
-                StringBuilder xmlData = new StringBuilder();
-                String inputLine;
+                urlConnection.setRequestProperty(
+                        "Authorization",
+                        "Basic " + encodedCredentials
+                );
 
-                while ((inputLine = reader.readLine()) != null) {
-                    xmlData.append(inputLine).append("\n");
-                }
+                // Make the request
+                int responseCode = urlConnection.getResponseCode();
 
-                reader.close();
+                Log.d("TRAFFIC_APP", "HTTP Response: " + responseCode);
 
-                result = xmlData.toString();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
 
-                Log.d("XML_DATA", "XML file loaded successfully");
+                    // Read the XML response from the API
+                    InputStream inputStream = urlConnection.getInputStream();
 
-            } catch (IOException e) {
-                Log.e("XML_DATA", "Unable to read XML file", e);
-                return;
+                    // Parse the XML using our existing parser
+                    ArrayList<Situation> situations =
+                            TrafficXmlParser.parse(inputStream);
+
+                    allSituations.clear();
+                    allSituations.addAll(situations);
+
+                    for (Situation situation: allSituations)
+                    {
+                        Log.d("TRAFFIC_SEVERITY",
+                                "Description: " + situation.getDescription()
+                                        + " | Road management: " + situation.getRoadManagementType()
+                                        + " | Abnormal traffic: " + situation.getAbnormalTrafficType()
+                                        + " | Lanes: " + situation.getDelaysType());
+                    }
+
+                    inputStream.close();
+
+                    // Update the RecyclerView on the UI thread
+                    MainActivity.this.runOnUiThread(() -> {
+
+                        filterSituations(showingRoadworks);
+
+                    });
+
+                } else {
+
+                Log.e("TRAFFIC_APP",
+                        "API request failed. HTTP: " + responseCode);
+
+                MainActivity.this.runOnUiThread(() -> {
+
+                    errorMessage.setText(
+                            "Unable to retrieve traffic data. Please try again."
+                    );
+
+                    errorMessage.setVisibility(View.VISIBLE);
+
+                });
+
             }
 
-/*            try {
-                URL url = new URL(myurl);
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                //ADD AUTHORISATION (string with clientID:clientKey)
-                String credentials = clientId + ":" + clientKey;
+            } catch (Exception e) {
 
-                String encodedCredentials = android.util.Base64.encodeToString(
-                        credentials.getBytes(),
-                        android.util.Base64.NO_WRAP
-                );
+                Log.e("TRAFFIC_APP",
+                        "Error retrieving live traffic data", e);
 
-                urlConnection.setRequestProperty("Authorization", encodedCredentials);*//**//*
-                try {
-                    in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-                    while ((inputLine = in.readLine()) != null){
-                        result = result + inputLine;
-                    }
-                    in.close();
-                } catch (IOException e) {
-                    String error = urlConnection.getErrorStream().toString();
-                    Log.e("urlConnection", "ioexception");
-                }
-                finally {
+                MainActivity.this.runOnUiThread(() -> {
+
+                    errorMessage.setText(
+                            "Connection failed. Check your internet connection and try again."
+                    );
+
+                    errorMessage.setVisibility(View.VISIBLE);
+
+                });
+
+            } finally {
+
+                if (urlConnection != null) {
                     urlConnection.disconnect();
                 }
-            } catch (IOException e) {
-                Log.e("URL", "ioexception");
-            }*/
 
-            // Clean up any leading garbage characters
-            int i = result.indexOf("<?");
+                MainActivity.this.runOnUiThread(() -> {
 
-            if (i != -1) {
-                result = result.substring(i);
-            } else {
-                Log.e("XML_PARSER", "XML declaration not found in response.");
+                    loadingProgress.setVisibility(View.GONE);
+
+                    startButton.setEnabled(true);
+
+                });
+
             }
 
-            // Now that you have the xml data into result, you can parse it
-            try {
-                XmlPullParserFactory factory =
-                        XmlPullParserFactory.newInstance();
-                factory.setNamespaceAware(true);
-                XmlPullParser xpp = factory.newPullParser();
-                xpp.setInput( new StringReader( result ) );
-
-                // Store all parsed traffic situations
-
-                // Store all parsed traffic situations
-                ArrayList<Situation> situations = new ArrayList<>();
-
-                // Start reading the XML document
-                int eventType = xpp.getEventType();
-
-                Situation currentSituation = null;
-
-                while (eventType != XmlPullParser.END_DOCUMENT)
-                {
-                    if (eventType == XmlPullParser.START_TAG)
-                    {
-                        String tagName = xpp.getName();
-
-                        // Detect the beginning of a situation record
-                        if (tagName.equals("situationRecord"))
-                        {
-                            currentSituation = new Situation();
-
-                            // Extract record ID
-                            String id = xpp.getAttributeValue(null, "id");
-                            currentSituation.setId(id);
-
-                            // Extract record type
-                            String type = xpp.getAttributeValue(
-                                    "http://www.w3.org/2001/XMLSchema-instance",
-                                    "type"
-                            );
-
-                            currentSituation.setType(type);
-                        }
-
-                        else if (currentSituation != null)
-                        {
-                            switch (tagName)
-                            {
-                                case "overallStartTime":
-                                    currentSituation.setStartTime(xpp.nextText());
-                                    break;
-
-                                case "overallEndTime":
-                                    currentSituation.setEndTime(xpp.nextText());
-                                    break;
-
-                                case "tpegDirection":
-                                    currentSituation.setDirection(xpp.nextText());
-                                    break;
-
-                                case "latitude":
-                                    currentSituation.setLatitude(
-                                            Double.valueOf(xpp.nextText())
-                                    );
-                                    break;
-
-                                case "longitude":
-                                    currentSituation.setLongitude(
-                                            Double.valueOf(xpp.nextText())
-                                    );
-                                    break;
-
-                                case "delaysType":
-                                    currentSituation.setDelaysType(xpp.nextText());
-                                    break;
-
-                                case "roadMaintenanceType":
-                                    currentSituation.setRoadManagementType(xpp.nextText());
-                                    break;
-                            }
-                        }
-                    }
-
-                    else if (eventType == XmlPullParser.END_TAG)
-                    {
-                        String tagName = xpp.getName();
-
-                        // Detect the end of a situation record
-                        if (tagName.equals("situationRecord")
-                                && currentSituation != null)
-                        {
-                            situations.add(currentSituation);
-
-                            Log.d("XML_PARSER",
-                                    "Parsed record: " +
-                                            currentSituation.getId() +
-                                            " | Type: " +
-                                            currentSituation.getType());
-
-                            currentSituation = null;
-                        }
-                    }
-
-                    // Move to the next XML event
-                    eventType = xpp.next();
-                }
-
-                // Log the total number of records
-                Log.d("XML_PARSER", "Total records: " + situations.size());
-
-
-
-            } catch (XmlPullParserException | IOException e) {
-                Log.e("Parsing","EXCEPTION" + e);
-                //throw new RuntimeException(e);
-            }
-
-            // Now update the TextView to display raw XML data
-            // Probably not the best way to update TextView
-            // but, we are just getting started !
-
-            MainActivity.this.runOnUiThread(new Runnable()
-            {
-                public void run() {
-                    Log.d("UI thread", "I am the UI thread");
-                    rawDataDisplay.setText(result);
-                }
-            });
         }
 
     }
 
 }
+

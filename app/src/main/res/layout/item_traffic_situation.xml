@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:layout_margin="8dp"
+    android:background="@drawable/traffic_card_background">
+
+    <!-- Incident colour indicator -->
+    <View
+        android:id="@+id/incidentIndicator"
+        android:layout_width="6dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/traffic_card_default" />
+
+    <!-- Incident information -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/incidentTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Incident location"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/incidentType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Incident type"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/incidentDirection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Direction"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/incidentStartTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Start time"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

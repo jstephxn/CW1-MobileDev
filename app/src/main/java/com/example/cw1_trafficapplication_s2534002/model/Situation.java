@@ -29,7 +29,6 @@ public class Situation {
 
     // Getters and Setters
 
-
     public String getId() {
         return id;
     }
@@ -140,6 +139,21 @@ public class Situation {
 
     public void setDelaysType(String delaysType) {
         this.delaysType = delaysType;
+    }
+
+    public String getSeverity()
+    {
+        if (roadManagementType == null)
+        {
+            return "UNKNOWN";
+        }
+
+        if (roadManagementType.equals("roadClosed"))
+        {
+            return "HIGH";
+        }
+
+        return "MODERATE";
     }
 
     public Situation() { }
