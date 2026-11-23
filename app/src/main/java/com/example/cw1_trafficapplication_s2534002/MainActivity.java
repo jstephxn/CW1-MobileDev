@@ -1,9 +1,3 @@
-/*  Starter project for Mobile Platform Development - 1st diet 26/27
-    You should use this project as the starting point for your assignment.
-    This project simply reads the data from the required source and displays the
-    raw data in a TextField
-*/
-
 //
 // Name                 James Stephen
 // Student ID           S2534002
@@ -22,7 +16,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -159,22 +152,12 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             return -1;
         }
 
-        Log.d("DISTANCE_DEBUG", "User: "
-                + userLocation.getLatitude() + ", "
-                + userLocation.getLongitude());
-
-        Log.d("DISTANCE_DEBUG", "Incident: "
-                + situation.getLatitude() + ", "
-                + situation.getLongitude());
-
         Location situationLocation = new Location("situation");
 
         situationLocation.setLatitude(situation.getLatitude());
         situationLocation.setLongitude(situation.getLongitude());
 
         float distance = userLocation.distanceTo(situationLocation);
-
-        Log.d("DISTANCE_DEBUG", "Calculated distance: " + distance + " metres");
 
         return distance;
     }
@@ -254,8 +237,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
                 if (permissionGranted) {
                     getUserLocation();
-                } else {
-                    Log.d("USER_LOCATION", "Location permission denied.");
                 }
             }
         }
@@ -415,20 +396,11 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
                     if (location != null) {
                         userLocation = location;
-
-                        Log.d("USER_LOCATION",
-                                "Latitude: " + location.getLatitude()
-                                        + ", Longitude: " + location.getLongitude());
-
                         updateSituationDistances();
 
                         filterSituations(showingRoadworks);
 
-                    } else {
-                        Log.d("USER_LOCATION",
-                                "Location unavailable.");
                     }
-
                 });
     }
 
@@ -465,8 +437,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         @Override
         public void run() {
 
-            Log.d("MyTask", "Starting live traffic request");
-
             HttpURLConnection urlConnection = null;
 
             try {
@@ -500,8 +470,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                 // Make the request
                 int responseCode = urlConnection.getResponseCode();
 
-                Log.d("TRAFFIC_APP", "HTTP Response: " + responseCode);
-
                 if (responseCode == HttpURLConnection.HTTP_OK) {
 
                     // Read the XML response from the API
@@ -513,10 +481,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
                     allSituations.clear();
                     allSituations.addAll(situations);
-
-                    for (Situation situation : allSituations) {
-                        Log.d("SITUATION_TYPE", "Type: " + situation.getType());
-                    }
 
                     inputStream.close();
 
@@ -532,9 +496,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
                 } else {
 
-                Log.e("TRAFFIC_APP",
-                        "API request failed. HTTP: " + responseCode);
-
                 MainActivity.this.runOnUiThread(() -> {
 
                     errorMessage.setText(
@@ -548,9 +509,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             }
 
             } catch (Exception e) {
-
-                Log.e("TRAFFIC_APP",
-                        "Error retrieving live traffic data", e);
 
                 MainActivity.this.runOnUiThread(() -> {
 

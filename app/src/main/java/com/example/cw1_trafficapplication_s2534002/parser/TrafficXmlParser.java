@@ -1,7 +1,5 @@
 package com.example.cw1_trafficapplication_s2534002.parser;
 
-import android.util.Log;
-
 import com.example.cw1_trafficapplication_s2534002.model.Situation;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -28,19 +26,12 @@ public class TrafficXmlParser {
         Situation currentSituation = null;
 
         int eventType = parser.getEventType();
-        String lastTagName = "";
 
         while (eventType != XmlPullParser.END_DOCUMENT) {
 
             if (eventType == XmlPullParser.START_TAG) {
 
                 String tagName = parser.getName();
-
-                lastTagName = tagName;
-
-                if (tagName.equals("impact")) {
-                    Log.d("XML_IMPACT", "Impact XML: " + parser.getName());
-                }
 
                 if (tagName.equals("situationRecord")) {
 
@@ -116,23 +107,6 @@ public class TrafficXmlParser {
 
 
                     }
-                    /*if (eventType == XmlPullParser.TEXT) {
-                        String text = parser.getText().trim();
-
-                        if (!text.isEmpty() &&
-                                (lastTagName.equals("numberOfOperationalLanes") ||
-                                        lastTagName.equals("trafficFlowCharacteristics") ||
-                                        lastTagName.equals("capacityRemaining") ||
-                                        lastTagName.equals("delay") ||
-                                        lastTagName.equals("delayTime") ||
-                                        lastTagName.equals("travelTime") ||
-                                        lastTagName.equals("averageSpeed") ||
-                                        lastTagName.equals("impact"))) {
-
-                            Log.d("XML_IMPACT_VALUES",
-                                    lastTagName + " = " + text);
-                        }
-                    }*/
                 }
             } else if (eventType == XmlPullParser.END_TAG) {
 
@@ -149,10 +123,6 @@ public class TrafficXmlParser {
             if (eventType == XmlPullParser.TEXT) {
                 String text = parser.getText().trim();
 
-                if (!text.isEmpty()) {
-                    Log.d("XML_IMPACT_VALUES",
-                            lastTagName + " = " + text);
-                }
             }
         }
 
