@@ -1,6 +1,8 @@
 package com.example.cw1_trafficapplication_s2534002.model;
 
-public class Situation {
+import java.io.Serializable;
+
+public class Situation implements Serializable {
 
     // General Situation information
     private String id;

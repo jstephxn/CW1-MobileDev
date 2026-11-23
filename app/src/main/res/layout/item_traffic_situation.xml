@@ -18,40 +18,59 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:padding="12dp">
 
-        <TextView
-            android:id="@+id/incidentTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Incident location"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+        <!-- Situation icon -->
+        <ImageView
+            android:id="@+id/incidentIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Situation type icon"
+            android:src="@drawable/ic_traffic_default" />
 
-        <TextView
-            android:id="@+id/incidentType"
-            android:layout_width="match_parent"
+        <!-- Incident text -->
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Incident type"
-            android:textSize="14sp"
-            android:layout_marginTop="8dp" />
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/incidentDirection"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Direction"
-            android:textSize="14sp"
-            android:layout_marginTop="4dp" />
+            <TextView
+                android:id="@+id/incidentTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Incident location"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/incidentStartTime"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Start time"
-            android:textSize="14sp"
-            android:layout_marginTop="4dp" />
+            <TextView
+                android:id="@+id/incidentType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Incident type"
+                android:textSize="14sp"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:id="@+id/incidentDirection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Direction"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/incidentStartTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Start time"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

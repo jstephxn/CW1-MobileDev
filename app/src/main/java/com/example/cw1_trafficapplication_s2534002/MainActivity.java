@@ -49,6 +49,7 @@ import android.text.TextWatcher;
 import android.text.Editable;
 import android.os.Handler;
 import android.os.Looper;
+import android.content.Intent;
 
 
 public class MainActivity extends AppCompatActivity implements OnClickListener {
@@ -82,11 +83,21 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+        Button mapButton = findViewById(R.id.mapButton);
+
+        mapButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, MapActivity.class);
+            intent.putExtra("situations", allSituations);
+            startActivity(intent);
+        });
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
         // Set up the raw links to the graphical components
         trafficRecyclerView = findViewById(R.id.trafficRecyclerView);
         trafficRecyclerView.setLayoutManager(
@@ -329,13 +340,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                     allSituations.clear();
                     allSituations.addAll(situations);
 
-                    for (Situation situation: allSituations)
-                    {
-                        Log.d("TRAFFIC_SEVERITY",
-                                "Description: " + situation.getDescription()
-                                        + " | Road management: " + situation.getRoadManagementType()
-                                        + " | Abnormal traffic: " + situation.getAbnormalTrafficType()
-                                        + " | Lanes: " + situation.getDelaysType());
+                    for (Situation situation : allSituations) {
+                        Log.d("SITUATION_TYPE", "Type: " + situation.getType());
                     }
 
                     inputStream.close();

@@ -41,6 +41,10 @@ android {
             "TRAFFIC_CLIENT_KEY",
             "\"${localProperties.getProperty("TRAFFIC_CLIENT_KEY", "")}\""
         )
+
+        manifestPlaceholders["MAPS_API_KEY"] =
+            localProperties.getProperty("MAPS_API_KEY", "")
+
     }
 
 
@@ -67,4 +71,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+    implementation("com.google.android.gms:play-services-maps:19.2.0")
 }

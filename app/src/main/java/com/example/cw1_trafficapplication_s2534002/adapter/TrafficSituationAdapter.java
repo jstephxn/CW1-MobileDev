@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -53,6 +54,30 @@ public class TrafficSituationAdapter
 
             default:
                 return type;
+        }
+    }
+
+    private int getSituationIcon(String type) {
+
+        if (type == null) {
+            return R.drawable.ic_traffic_default;
+        }
+
+        switch (type) {
+            case "RoadOrCarriagewayOrLaneManagement":
+                return R.drawable.ic_roadworks;
+
+            case "GeneralObstruction":
+                return R.drawable.ic_obstruction;
+
+            case "AbnormalTraffic":
+                return R.drawable.ic_abnormal_traffic;
+
+            case "Accident":
+                return R.drawable.ic_accident;
+
+            default:
+                return R.drawable.ic_traffic_default;
         }
     }
 
@@ -133,6 +158,8 @@ public class TrafficSituationAdapter
         holder.incidentStartTime.setText(formatStartTime(situation.getStartTime()));
 
         holder.incidentIndicator.setBackgroundColor(getSeverityColor(situation.getSeverity()));
+        holder.incidentIcon.setImageResource(getSituationIcon(situation.getType()));
+
         // Handle Card clicks
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
@@ -169,6 +196,7 @@ public class TrafficSituationAdapter
         TextView incidentDirection;
         TextView incidentStartTime;
         View incidentIndicator;
+        ImageView incidentIcon;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -178,6 +206,7 @@ public class TrafficSituationAdapter
             incidentDirection = itemView.findViewById(R.id.incidentDirection);
             incidentStartTime = itemView.findViewById(R.id.incidentStartTime);
             incidentIndicator = itemView.findViewById(R.id.incidentIndicator);
+            incidentIcon = itemView.findViewById(R.id.incidentIcon);
         }
     }
 }
