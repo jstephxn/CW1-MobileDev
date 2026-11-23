@@ -298,6 +298,19 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             }
         }
 
+        // Sort by distance (nearest first), unavailable distances last
+        filteredSituations.sort((s1, s2) -> {
+
+            float d1 = s1.getDistanceFromUser();
+            float d2 = s2.getDistanceFromUser();
+
+            if (d1 < 0 && d2 < 0) return 0;
+            if (d1 < 0) return 1;
+            if (d2 < 0) return -1;
+
+            return Float.compare(d1, d2);
+        });
+
         trafficRecyclerView.setAdapter(
                 new TrafficSituationAdapter(
                         filteredSituations,
